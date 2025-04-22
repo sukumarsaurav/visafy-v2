@@ -1,0 +1,3 @@
+<?php
+require_once 'config/database.php';
+// ... existing code ... 
