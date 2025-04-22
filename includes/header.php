@@ -71,20 +71,7 @@ $base = isset($base_path) ? $base_path : $base_url;
     <script src="<?php echo $base; ?>/assets/js/resources.js" defer></script>
 </head>
 <body>
-    <!-- Top Navbar -->
-    <div class="top-navbar">
-        <div class="container">
-            <div class="top-navbar-content">
-                <div class="contact-info-top-bar">
-                    <a href="mailto:info@visafy.io" class="top-bar-link"><i class="fas fa-envelope"></i> info@visafy.io</a>
-                    <a href="tel:+16472267436" class="top-bar-link"><i class="fas fa-phone"></i> +1 (647) 226-7436</a>
-                </div>
-                <div class="member-login-top-bar">
-                    <a href="/login.php" class="login-btn-top"><i class="fas fa-user"></i>Login</a>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Removed top navbar as requested -->
 
     <!-- Drawer Overlay -->
     <div class="drawer-overlay"></div>
@@ -102,6 +89,7 @@ $base = isset($base_path) ? $base_path : $base_url;
                 Visa Services <i class="fas fa-chevron-down"></i>
             </div>
             <div class="drawer-submenu" id="visa-submenu">
+                <!-- Drawer submenu items remain unchanged -->
                 <a href="<?php echo $base; ?>/visa-types/Study-Permit.php" class="drawer-submenu-item">
                     <div class="drawer-submenu-title">Study Permit</div>
                     <div class="drawer-submenu-description">Information for international students looking to study in Canada</div>
@@ -128,12 +116,11 @@ $base = isset($base_path) ? $base_path : $base_url;
                 </a>
             </div>
             
-
-            
             <div class="drawer-item" data-target="resources-submenu">
                 Resources <i class="fas fa-chevron-down"></i>
             </div>
             <div class="drawer-submenu" id="resources-submenu">
+                <!-- Resources submenu items remain unchanged -->
                 <a href="<?php echo $base; ?>/resources/immigration-news.php" class="drawer-submenu-item">
                     <div class="drawer-submenu-title">Immigration News</div>
                     <div class="drawer-submenu-description">Latest updates on Canadian immigration policies</div>
@@ -156,6 +143,17 @@ $base = isset($base_path) ? $base_path : $base_url;
             
             <div class="drawer-cta">
                 <a href="<?php echo $base; ?>/contact.php" class="btn btn-primary">Book Consultation</a>
+                <?php if(isset($_SESSION['user_id'])): ?>
+                <div class="drawer-profile">
+                    <a href="<?php echo $base; ?>/dashboard.php" class="drawer-profile-link">Dashboard</a>
+                    <a href="<?php echo $base; ?>/logout.php" class="drawer-profile-link">Logout</a>
+                </div>
+                <?php else: ?>
+                <div class="drawer-auth">
+                    <a href="<?php echo $base; ?>/login.php" class="drawer-auth-link">Login</a>
+                    <a href="<?php echo $base; ?>/register.php" class="drawer-auth-link">Register</a>
+                </div>
+                <?php endif; ?>
             </div>
         </nav>
     </div>
@@ -165,8 +163,8 @@ $base = isset($base_path) ? $base_path : $base_url;
         <div class="container header-container">
             <!-- Logo -->
             <div class="logo">
-                <a href="/index.php">
-                    <img src="/assets/images/logo-Visafy-light.png" alt="Visafy Logo" class="desktop-logo">
+                <a href="<?php echo $base; ?>/index.php">
+                    <img src="<?php echo $base; ?>/assets/images/logo-Visafy-light.png" alt="Visafy Logo" class="desktop-logo">
                 </a>
             </div>
             
@@ -174,25 +172,54 @@ $base = isset($base_path) ? $base_path : $base_url;
             <div class="header-right">
                 <nav class="main-nav">
                     <ul class="nav-menu">
-                    <li class="nav-item"><a href="<?php echo $base; ?>/about-us.php">About Us</a></li>
-                    <li class="nav-item"><a href="<?php echo $base; ?>/services.php">Services</a></li>
-                    <li class="nav-item"><a href="<?php echo $base; ?>/become-member.php">Become Partner</a></li> 
-                    <li class="nav-item"><a href="<?php echo $base; ?>/eligibility-test.php">Eligibility Check</a></li> 
-                        
-                    
+                        <li class="nav-item"><a href="<?php echo $base; ?>/about-us.php">About Us</a></li>
+                        <li class="nav-item"><a href="<?php echo $base; ?>/services.php">Services</a></li>
+                        <li class="nav-item"><a href="<?php echo $base; ?>/become-member.php">Become Partner</a></li> 
+                        <li class="nav-item"><a href="<?php echo $base; ?>/eligibility-test.php">Eligibility Check</a></li> 
                     </ul>
                 </nav>
                 
-                <div class="consultation-btn">
-                    <a href="/consultant.php" class="btn btn-primary">Book Consultation</a>
+                <!-- Inside the header-actions div -->
+                <div class="header-actions">
+                    <?php if(isset($_SESSION['user_id'])): ?>
+                    <!-- User is logged in - show profile dropdown -->
+                    <div class="action-buttons">
+                        <div class="consultation-btn">
+                            <a href="<?php echo $base; ?>/book-service.php" class="btn btn-primary">Book Service</a>
+                        </div>
+                        <div class="user-profile-dropdown">
+                            <button class="profile-toggle">
+                                <?php if(isset($_SESSION['user_profile_image']) && !empty($_SESSION['user_profile_image'])): ?>
+                                    <img src="<?php echo $base; ?>/assets/images/profiles/<?php echo $_SESSION['user_profile_image']; ?>" alt="Profile" class="profile-image">
+                                <?php else: ?>
+                                    <i class="fas fa-user-circle profile-placeholder"></i>
+                                <?php endif; ?>
+                            </button>
+                            <div class="profile-dropdown-menu">
+                                <a href="<?php echo $base; ?>/dashboard.php">Dashboard</a>
+                                <a href="<?php echo $base; ?>/profile.php">My Profile</a>
+                                <a href="<?php echo $base; ?>/logout.php">Logout</a>
+                            </div>
+                        </div>
+                    </div>
+                    <?php else: ?>
+                    <!-- User is not logged in - show login/register button -->
+                    <div class="action-buttons">
+                        <div class="consultation-btn">
+                            <a href="<?php echo $base; ?>/book-service.php" class="btn btn-primary">Book Service</a>
+                        </div>
+                        <div class="auth-button">
+                            <a href="<?php echo $base; ?>/login.php" class="btn btn-secondary">Login/Register</a>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <button class="mobile-menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
                 </div>
-                
-                <button class="mobile-menu-toggle">
-                    <i class="fas fa-bars"></i>
-                </button>
             </div>
         </div>
     </header>
-
 </body>
-</html> 
+</html>

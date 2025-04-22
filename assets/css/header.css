@@ -1,4 +1,29 @@
-:root {
+/* Add this to your header.css file */
+.action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Space between buttons */
+}
+
+.consultation-btn, .auth-button {
+    display: inline-block;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+}
+
+.mobile-menu-toggle {
+    margin-left: 15px;
+}
+
+/* For mobile responsiveness */
+@media (max-width: 768px) {
+    .action-buttons {
+        display: none; /* Hide on mobile as they'll be in the drawer */
+    }
+}:root {
     --color-cream: #FFFFFF;
     --color-gold: #FFFFFF;
     --color-red: #eaaa34;
@@ -789,5 +814,31 @@ ul {
     
     .member-login .login-btn {
         padding: 5px 10px;
+    }
+}
+/* Add this to your header.css file */
+.action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Space between buttons */
+}
+
+.consultation-btn, .auth-button {
+    display: inline-block;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+}
+
+.mobile-menu-toggle {
+    margin-left: 15px;
+}
+
+/* For mobile responsiveness */
+@media (max-width: 768px) {
+    .action-buttons {
+        display: none; /* Hide on mobile as they'll be in the drawer */
     }
 }

@@ -72,6 +72,57 @@ CREATE TABLE `professionals` (
   CONSTRAINT `professionals_user_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `professionals_verified_by_fk` FOREIGN KEY (`verified_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- Service types table
+CREATE TABLE `service_types` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL,
+  `description` text NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Insert common service types
+INSERT INTO `service_types` (name, description) VALUES
+('DIY', 'Self-service option with access to document templates and guides'),
+('Consultation', 'Professional advice and guidance with limited support'),
+('Complete Process', 'Full end-to-end case management by a professional');
+
+-- Service modes table (how the service can be delivered)
+CREATE TABLE `service_modes` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL,
+  `description` text NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Insert service modes
+INSERT INTO `service_modes` (name, description) VALUES
+('Chat', 'Text-based messaging through the platform'),
+('Video Call', 'Face-to-face video consultation'),
+('Phone Call', 'Voice-only consultation'),
+('Email', 'Communication via email'),
+('Document Review', 'Professional review of submitted documents');
+
+-- Service type modes - which modes are available for each service type
+CREATE TABLE `service_type_modes` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `service_type_id` int(11) NOT NULL,
+  `service_mode_id` int(11) NOT NULL,
+  `is_included` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `service_type_mode` (`service_type_id`,`service_mode_id`),
+  KEY `service_mode_id` (`service_mode_id`),
+  CONSTRAINT `service_type_modes_service_type_fk` FOREIGN KEY (`service_type_id`) REFERENCES `service_types` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `service_type_modes_service_mode_fk` FOREIGN KEY (`service_mode_id`) REFERENCES `service_modes` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Languages table
 CREATE TABLE `languages` (
@@ -145,16 +196,19 @@ CREATE TABLE `case_applications` (
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `deleted_at` datetime DEFAULT NULL,
+  `service_type_id` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `reference_number` (`reference_number`),
   KEY `client_id` (`client_id`),
   KEY `professional_id` (`professional_id`),
   KEY `visa_type_id` (`visa_type_id`),
+  KEY `service_type_id` (`service_type_id`),
   KEY `idx_cases_status_professional` (`status`, `professional_id`),
   KEY `idx_cases_status_client` (`status`, `client_id`),
   CONSTRAINT `case_applications_client_fk` FOREIGN KEY (`client_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `case_applications_professional_fk` FOREIGN KEY (`professional_id`) REFERENCES `professionals` (`user_id`) ON DELETE SET NULL,
-  CONSTRAINT `case_applications_visa_type_fk` FOREIGN KEY (`visa_type_id`) REFERENCES `visa_types` (`id`)
+  CONSTRAINT `case_applications_visa_type_fk` FOREIGN KEY (`visa_type_id`) REFERENCES `visa_types` (`id`),
+  CONSTRAINT `case_applications_service_type_fk` FOREIGN KEY (`service_type_id`) REFERENCES `service_types` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Case notes table
@@ -251,10 +305,8 @@ CREATE TABLE `time_slots` (
   `date` date NOT NULL,
   `start_time` time NOT NULL,
   `end_time` time NOT NULL,
-  `is_video_available` tinyint(1) NOT NULL DEFAULT 1,
-  `is_phone_available` tinyint(1) NOT NULL DEFAULT 1,
-  `is_inperson_available` tinyint(1) NOT NULL DEFAULT 1,
   `is_booked` tinyint(1) NOT NULL DEFAULT 0,
+  `service_mode_id` int(11) NOT NULL AFTER `end_time`,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -262,8 +314,10 @@ CREATE TABLE `time_slots` (
   KEY `idx_time_slots_date` (`date`),
   KEY `idx_time_slots_available` (`is_booked`,`date`),
   KEY `availability_id` (`availability_id`),
+  KEY `service_mode_id` (`service_mode_id`),
   CONSTRAINT `time_slots_professional_fk` FOREIGN KEY (`professional_id`) REFERENCES `professionals` (`user_id`) ON DELETE CASCADE,
-  CONSTRAINT `time_slots_availability_fk` FOREIGN KEY (`availability_id`) REFERENCES `consultant_availability` (`id`) ON DELETE CASCADE
+  CONSTRAINT `time_slots_availability_fk` FOREIGN KEY (`availability_id`) REFERENCES `consultant_availability` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `time_slots_service_mode_fk` FOREIGN KEY (`service_mode_id`) REFERENCES `service_modes` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Consultation fees table
@@ -285,7 +339,8 @@ CREATE TABLE `bookings` (
   `professional_id` int(11) NOT NULL,
   `client_id` int(11) NOT NULL,
   `time_slot_id` int(11) NOT NULL,
-  `consultation_type` enum('video','phone','inperson') NOT NULL,
+  `service_type_id` int(11) NOT NULL,
+  `service_mode_id` int(11) NOT NULL,
   `status` enum('pending','confirmed','completed','cancelled') NOT NULL DEFAULT 'pending',
   `price` decimal(10,2) NOT NULL,
   `payment_status` enum('unpaid','paid','refunded') NOT NULL DEFAULT 'unpaid',
@@ -296,10 +351,14 @@ CREATE TABLE `bookings` (
   KEY `professional_id` (`professional_id`),
   KEY `client_id` (`client_id`),
   KEY `time_slot_id` (`time_slot_id`),
+  KEY `service_type_id` (`service_type_id`),
+  KEY `service_mode_id` (`service_mode_id`),
   KEY `idx_bookings_status_date` (`status`, `created_at`),
   CONSTRAINT `bookings_client_fk` FOREIGN KEY (`client_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `bookings_professional_fk` FOREIGN KEY (`professional_id`) REFERENCES `professionals` (`user_id`) ON DELETE CASCADE,
-  CONSTRAINT `bookings_time_slot_fk` FOREIGN KEY (`time_slot_id`) REFERENCES `time_slots` (`id`) ON DELETE CASCADE
+  CONSTRAINT `bookings_time_slot_fk` FOREIGN KEY (`time_slot_id`) REFERENCES `time_slots` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `bookings_service_type_fk` FOREIGN KEY (`service_type_id`) REFERENCES `service_types` (`id`),
+  CONSTRAINT `bookings_service_mode_fk` FOREIGN KEY (`service_mode_id`) REFERENCES `service_modes` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Professional clients table
@@ -425,34 +484,43 @@ BEGIN
 END;
 //
 
--- Trigger to prevent booking if the selected consultation type is unavailable
+-- Trigger to prevent booking if the time slot is already booked
 CREATE TRIGGER before_booking_insert
 BEFORE INSERT ON bookings
 FOR EACH ROW
 BEGIN
-  DECLARE is_type_available BOOLEAN;
-  
-  -- Check if the consultation type is available for this time slot
-  IF NEW.consultation_type = 'video' THEN
-    SELECT is_video_available INTO is_type_available FROM time_slots WHERE id = NEW.time_slot_id;
-  ELSEIF NEW.consultation_type = 'phone' THEN
-    SELECT is_phone_available INTO is_type_available FROM time_slots WHERE id = NEW.time_slot_id;
-  ELSEIF NEW.consultation_type = 'inperson' THEN
-    SELECT is_inperson_available INTO is_type_available FROM time_slots WHERE id = NEW.time_slot_id;
-  END IF;
-  
-  IF NOT is_type_available THEN
-    SIGNAL SQLSTATE '45000' 
-    SET MESSAGE_TEXT = 'Selected consultation type is not available for this time slot';
-  END IF;
+  DECLARE is_slot_booked BOOLEAN;
+  DECLARE slot_mode_id INT;
+  DECLARE is_mode_offered BOOLEAN;
   
   -- Check if time slot is already booked
-  DECLARE is_slot_booked BOOLEAN;
-  SELECT is_booked INTO is_slot_booked FROM time_slots WHERE id = NEW.time_slot_id;
+  SELECT is_booked, service_mode_id INTO is_slot_booked, slot_mode_id 
+  FROM time_slots WHERE id = NEW.time_slot_id;
   
   IF is_slot_booked THEN
     SIGNAL SQLSTATE '45000' 
     SET MESSAGE_TEXT = 'This time slot is already booked';
+  END IF;
+  
+  -- Check if the requested service mode matches the time slot's service mode
+  IF NEW.service_mode_id != slot_mode_id THEN
+    SIGNAL SQLSTATE '45000' 
+    SET MESSAGE_TEXT = 'The requested service mode does not match this time slot';
+  END IF;
+  
+  -- Check if the professional offers this service type and mode
+  SELECT COUNT(*) > 0 INTO is_mode_offered
+  FROM professional_services ps
+  JOIN professional_service_mode_pricing psmp ON ps.id = psmp.professional_service_id
+  WHERE ps.professional_id = NEW.professional_id
+  AND ps.service_type_id = NEW.service_type_id
+  AND psmp.service_mode_id = NEW.service_mode_id
+  AND ps.is_offered = 1
+  AND psmp.is_offered = 1;
+  
+  IF NOT is_mode_offered THEN
+    SIGNAL SQLSTATE '45000' 
+    SET MESSAGE_TEXT = 'The professional does not offer this service type or mode';
   END IF;
 END;
 //
@@ -484,7 +552,8 @@ DELIMITER //
 CREATE PROCEDURE generate_time_slots(
   IN p_professional_id INT,
   IN p_date DATE,
-  IN p_slot_duration INT -- in minutes
+  IN p_slot_duration INT, -- in minutes
+  IN p_service_mode_id INT -- service mode for these slots
 )
 BEGIN
   DECLARE v_start_time TIME DEFAULT '09:00:00'; -- Default start time 9 AM
@@ -511,28 +580,24 @@ BEGIN
     -- Calculate slot end time
     SET v_slot_end_time = ADDTIME(v_current_time, SEC_TO_TIME(p_slot_duration * 60));
     
-    -- Insert the time slot
+    -- Insert the time slot with service mode
     INSERT INTO time_slots (
       professional_id, 
       availability_id, 
       date, 
       start_time, 
-      end_time, 
-      is_video_available, 
-      is_phone_available, 
-      is_inperson_available
+      end_time,
+      service_mode_id
     ) VALUES (
       p_professional_id, 
       v_availability_id, 
       p_date, 
       v_current_time, 
-      v_slot_end_time, 
-      1, 1, 1
+      v_slot_end_time,
+      p_service_mode_id
     )
     ON DUPLICATE KEY UPDATE 
-      is_video_available = 1, 
-      is_phone_available = 1, 
-      is_inperson_available = 1;
+      service_mode_id = p_service_mode_id;
     
     -- Move to next slot
     SET v_current_time = v_slot_end_time;
@@ -550,20 +615,22 @@ SELECT
   ts.date,
   ts.start_time,
   ts.end_time,
-  ts.is_video_available,
-  ts.is_phone_available,
-  ts.is_inperson_available,
-  cf_video.fee AS video_fee,
-  cf_phone.fee AS phone_fee,
-  cf_inperson.fee AS inperson_fee
+  sm.id AS service_mode_id,
+  sm.name AS service_mode_name,
+  ps.service_type_id,
+  st.name AS service_type_name,
+  ps.custom_price AS base_price,
+  psmp.additional_fee,
+  (ps.custom_price + COALESCE(psmp.additional_fee, 0)) AS total_price
 FROM 
   time_slots ts
 JOIN professionals p ON ts.professional_id = p.user_id
 JOIN users u ON p.user_id = u.id
 JOIN consultant_availability ca ON ts.availability_id = ca.id
-LEFT JOIN consultation_fees cf_video ON p.user_id = cf_video.professional_id AND cf_video.consultation_type = 'video'
-LEFT JOIN consultation_fees cf_phone ON p.user_id = cf_phone.professional_id AND cf_phone.consultation_type = 'phone'
-LEFT JOIN consultation_fees cf_inperson ON p.user_id = cf_inperson.professional_id AND cf_inperson.consultation_type = 'inperson'
+JOIN service_modes sm ON ts.service_mode_id = sm.id
+JOIN professional_services ps ON p.user_id = ps.professional_id
+JOIN service_types st ON ps.service_type_id = st.id
+LEFT JOIN professional_service_mode_pricing psmp ON ps.id = psmp.professional_service_id AND sm.id = psmp.service_mode_id
 WHERE 
   ts.is_booked = 0
   AND ca.is_available = 1
@@ -571,7 +638,9 @@ WHERE
   AND u.status = 'active'
   AND p.verification_status = 'verified'
   AND p.availability_status = 'available'
-  AND u.deleted_at IS NULL;
+  AND u.deleted_at IS NULL
+  AND ps.is_offered = 1
+  AND COALESCE(psmp.is_offered, 1) = 1;
 //
 
 DELIMITER ;
@@ -581,14 +650,18 @@ CREATE TABLE `conversations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `client_id` int(11) NOT NULL,
   `professional_id` int(11) NOT NULL,
+  `case_id` int(11) DEFAULT NULL,
+  `service_type_id` int(11) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `client_professional` (`client_id`,`professional_id`),
-  KEY `professional_id` (`professional_id`),
-  KEY `client_id` (`client_id`),
+  UNIQUE KEY `client_professional_case` (`client_id`,`professional_id`,`case_id`),
+  KEY `case_id` (`case_id`),
+  KEY `service_type_id` (`service_type_id`),
   CONSTRAINT `conversations_client_fk` FOREIGN KEY (`client_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `conversations_professional_fk` FOREIGN KEY (`professional_id`) REFERENCES `professionals` (`user_id`) ON DELETE CASCADE
+  CONSTRAINT `conversations_professional_fk` FOREIGN KEY (`professional_id`) REFERENCES `professionals` (`user_id`) ON DELETE CASCADE,
+  CONSTRAINT `conversations_case_fk` FOREIGN KEY (`case_id`) REFERENCES `case_applications` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `conversations_service_type_fk` FOREIGN KEY (`service_type_id`) REFERENCES `service_types` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Chat messages table
@@ -597,6 +670,7 @@ CREATE TABLE `chat_messages` (
   `conversation_id` int(11) NOT NULL,
   `sender_id` int(11) NOT NULL,
   `content` text NOT NULL,
+  `service_mode_id` int(11) DEFAULT NULL,
   `is_read` tinyint(1) NOT NULL DEFAULT 0,
   `read_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
@@ -604,10 +678,12 @@ CREATE TABLE `chat_messages` (
   PRIMARY KEY (`id`),
   KEY `conversation_id` (`conversation_id`),
   KEY `sender_id` (`sender_id`),
+  KEY `service_mode_id` (`service_mode_id`),
   KEY `idx_messages_created` (`created_at`),
   KEY `idx_messages_read` (`is_read`),
   CONSTRAINT `chat_messages_conversation_fk` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `chat_messages_sender_fk` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  CONSTRAINT `chat_messages_sender_fk` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `chat_messages_service_mode_fk` FOREIGN KEY (`service_mode_id`) REFERENCES `service_modes` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
 PARTITION BY RANGE (MONTH(created_at)) (
     PARTITION p1 VALUES LESS THAN (4),
@@ -648,6 +724,96 @@ FROM conversations c
 JOIN users u1 ON c.client_id = u1.id
 JOIN professionals p ON c.professional_id = p.user_id
 JOIN users u2 ON p.user_id = u2.id
+WHERE c.client_id = :current_user_id OR c.professional_id = :current_user_id
+ORDER BY last_message_time DESC;
+
+
+-- Professional service offerings table with pricing control
+CREATE TABLE `professional_services` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `professional_id` int(11) NOT NULL,
+  `service_type_id` int(11) NOT NULL,
+  `is_offered` tinyint(1) NOT NULL DEFAULT 1,
+  `custom_price` decimal(10,2) NOT NULL COMMENT 'Price set by the professional for this service',
+  `service_description` text DEFAULT NULL COMMENT 'Professional custom description of their service',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `professional_service` (`professional_id`,`service_type_id`),
+  KEY `service_type_id` (`service_type_id`),
+  CONSTRAINT `professional_services_professional_fk` FOREIGN KEY (`professional_id`) REFERENCES `professionals` (`user_id`) ON DELETE CASCADE,
+  CONSTRAINT `professional_services_service_type_fk` FOREIGN KEY (`service_type_id`) REFERENCES `service_types` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Professional service mode pricing (optional - for different pricing per mode)
+CREATE TABLE `professional_service_mode_pricing` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `professional_service_id` int(11) NOT NULL,
+  `service_mode_id` int(11) NOT NULL,
+  `is_offered` tinyint(1) NOT NULL DEFAULT 1,
+  `additional_fee` decimal(10,2) DEFAULT 0.00 COMMENT 'Additional fee for this specific mode',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `prof_service_mode` (`professional_service_id`,`service_mode_id`),
+  KEY `service_mode_id` (`service_mode_id`),
+  CONSTRAINT `prof_service_mode_pricing_prof_service_fk` FOREIGN KEY (`professional_service_id`) REFERENCES `professional_services` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `prof_service_mode_pricing_service_mode_fk` FOREIGN KEY (`service_mode_id`) REFERENCES `service_modes` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Create view for professional available services with pricing
+CREATE VIEW professional_available_services AS
+SELECT 
+  ps.professional_id,
+  u.name AS professional_name,
+  st.id AS service_type_id,
+  st.name AS service_type,
+  ps.custom_price,
+  ps.service_description,
+  sm.id AS mode_id,
+  sm.name AS service_mode,
+  stm.is_included,
+  COALESCE(psmp.additional_fee, 0) AS additional_fee,
+  COALESCE(ps.custom_price + psmp.additional_fee, ps.custom_price) AS total_price,
+  COALESCE(psmp.is_offered, 1) AS mode_is_offered
+FROM professional_services ps
+JOIN service_types st ON ps.service_type_id = st.id
+JOIN professionals p ON ps.professional_id = p.user_id
+JOIN users u ON p.user_id = u.id
+JOIN service_type_modes stm ON st.id = stm.service_type_id
+JOIN service_modes sm ON stm.service_mode_id = sm.id
+LEFT JOIN professional_service_mode_pricing psmp ON ps.id = psmp.professional_service_id AND sm.id = psmp.service_mode_id
+WHERE 
+  ps.is_offered = 1
+  AND st.is_active = 1
+  AND sm.is_active = 1
+  AND p.verification_status = 'verified'
+  AND u.status = 'active';
+
+-- Create view for recent conversations with unread messages count
+CREATE VIEW recent_conversations AS
+SELECT 
+  c.id AS conversation_id,
+  c.client_id,
+  c.professional_id,
+  c.case_id,
+  c.service_type_id,
+  st.name AS service_type_name,
+  u1.name AS client_name,
+  u2.name AS professional_name,
+  ca.reference_number AS case_reference,
+  (SELECT COUNT(*) FROM chat_messages 
+   WHERE conversation_id = c.id AND is_read = 0 AND sender_id != :current_user_id) AS unread_count,
+  (SELECT created_at FROM chat_messages 
+   WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message_time,
+  (SELECT content FROM chat_messages 
+   WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message
+FROM conversations c
+JOIN users u1 ON c.client_id = u1.id
+JOIN professionals p ON c.professional_id = p.user_id
+JOIN users u2 ON p.user_id = u2.id
+LEFT JOIN case_applications ca ON c.case_id = ca.id
+LEFT JOIN service_types st ON c.service_type_id = st.id
 WHERE c.client_id = :current_user_id OR c.professional_id = :current_user_id
 ORDER BY last_message_time DESC;
 
