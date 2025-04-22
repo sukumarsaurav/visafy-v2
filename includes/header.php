@@ -85,59 +85,14 @@ $base = isset($base_path) ? $base_path : $base_url;
             <button class="drawer-close"><i class="fas fa-times"></i></button>
         </div>
         <nav class="drawer-nav">
-            <div class="drawer-item" data-target="visa-submenu">
-                Visa Services <i class="fas fa-chevron-down"></i>
-            </div>
-            <div class="drawer-submenu" id="visa-submenu">
-                <!-- Drawer submenu items remain unchanged -->
-                <a href="<?php echo $base; ?>/visa-types/Study-Permit.php" class="drawer-submenu-item">
-                    <div class="drawer-submenu-title">Study Permit</div>
-                    <div class="drawer-submenu-description">Information for international students looking to study in Canada</div>
-                </a>
-                <a href="<?php echo $base; ?>/visa-types/Work-Permit.php" class="drawer-submenu-item">
-                    <div class="drawer-submenu-title">Work Permit</div>
-                    <div class="drawer-submenu-description">Guidance for those seeking employment opportunities in Canada</div>
-                </a>
-                <a href="<?php echo $base; ?>/visa-types/Express-Entry-visa.php" class="drawer-submenu-item">
-                    <div class="drawer-submenu-title">Express Entry</div>
-                    <div class="drawer-submenu-description">Fast-track immigration for skilled workers and professionals</div>
-                </a>
-                <a href="<?php echo $base; ?>/visa-types/Family-Sponsorship.php" class="drawer-submenu-item">
-                    <div class="drawer-submenu-title">Family Sponsorship</div>
-                    <div class="drawer-submenu-description">Reunite with your family members in Canada</div>
-                </a>
-                <a href="<?php echo $base; ?>/visa-types/Provincial-Nominee.php" class="drawer-submenu-item">
-                    <div class="drawer-submenu-title">Provincial Nominee</div>
-                    <div class="drawer-submenu-description">Immigration programs tailored to provincial needs</div>
-                </a>
-                <a href="<?php echo $base; ?>/visa-types/faq.php" class="drawer-submenu-item">
-                    <div class="drawer-submenu-title">Visitor Visa</div>
-                    <div class="drawer-submenu-description">Visit Canada for tourism, business, or family visits</div>
-                </a>
-            </div>
+           
             
-            <div class="drawer-item" data-target="resources-submenu">
-                Resources <i class="fas fa-chevron-down"></i>
-            </div>
-            <div class="drawer-submenu" id="resources-submenu">
-                <!-- Resources submenu items remain unchanged -->
-                <a href="<?php echo $base; ?>/resources/immigration-news.php" class="drawer-submenu-item">
-                    <div class="drawer-submenu-title">Immigration News</div>
-                    <div class="drawer-submenu-description">Latest updates on Canadian immigration policies</div>
-                </a>
-                <a href="<?php echo $base; ?>/resources/guides-tutorials.php" class="drawer-submenu-item">
-                    <div class="drawer-submenu-title">Guides & Tutorials</div>
-                    <div class="drawer-submenu-description">Step-by-step instructions for immigration processes</div>
-                </a>
-                <a href="<?php echo $base; ?>/resources/faq.php" class="drawer-submenu-item">
-                    <div class="drawer-submenu-title">FAQ</div>
-                    <div class="drawer-submenu-description">Answers to commonly asked immigration questions</div>
-                </a>
-                <a href="<?php echo $base; ?>/resources/blog.php" class="drawer-submenu-item">
-                    <div class="drawer-submenu-title">Blog</div>
-                    <div class="drawer-submenu-description">Articles and insights on Canadian immigration</div>
-                </a>
-            </div>
+            <a href="<?php echo $base; ?>/about-us.php" class="drawer-item">About Us</a>
+            <a href="<?php echo $base; ?>/services.php" class="drawer-item">Services</a>
+            <a href="<?php echo $base; ?>/become-member.php" class="drawer-item">Become Partner</a>
+            <a href="<?php echo $base; ?>/eligibility-test.php" class="drawer-item">Eligibility Check</a>
+            
+          
             
             <a href="<?php echo $base; ?>/contact.php" class="drawer-item">Contact</a>
             
