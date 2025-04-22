@@ -211,7 +211,10 @@ CREATE TABLE `case_applications` (
   CONSTRAINT `case_applications_service_type_fk` FOREIGN KEY (`service_type_id`) REFERENCES `service_types` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Case notes table
+-- First, drop the existing case_notes table that has partitioning
+DROP TABLE IF EXISTS `case_notes`;
+
+-- Recreate the case_notes table without partitioning
 CREATE TABLE `case_notes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `case_id` int(11) NOT NULL,
@@ -224,19 +227,13 @@ CREATE TABLE `case_notes` (
   PRIMARY KEY (`id`),
   KEY `case_id` (`case_id`),
   KEY `user_id` (`user_id`),
-  KEY `idx_case_notes_created` (`created_at`),
-  CONSTRAINT `case_notes_case_fk` FOREIGN KEY (`case_id`) REFERENCES `case_applications` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `case_notes_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-PARTITION BY RANGE (YEAR(created_at)) (
-    PARTITION p2023 VALUES LESS THAN (2024),
-    PARTITION p2024 VALUES LESS THAN (2025),
-    PARTITION p2025 VALUES LESS THAN (2026),
-    PARTITION p2026 VALUES LESS THAN (2027),
-    PARTITION p2027 VALUES LESS THAN (2028),
-    PARTITION p2028 VALUES LESS THAN (2029),
-    PARTITION pmax VALUES LESS THAN MAXVALUE
-);
+  KEY `idx_case_notes_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Add the foreign key constraints separately
+ALTER TABLE `case_notes` 
+  ADD CONSTRAINT `case_notes_case_fk` FOREIGN KEY (`case_id`) REFERENCES `case_applications` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `case_notes_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
 -- Document types table
 CREATE TABLE `document_types` (
@@ -248,7 +245,10 @@ CREATE TABLE `document_types` (
   UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Documents table
+-- First, drop the existing documents table that has partitioning
+DROP TABLE IF EXISTS `documents`;
+
+-- Recreate the documents table without partitioning
 CREATE TABLE `documents` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `case_id` int(11) NOT NULL,
@@ -267,21 +267,15 @@ CREATE TABLE `documents` (
   KEY `client_id` (`client_id`),
   KEY `professional_id` (`professional_id`),
   KEY `document_type_id` (`document_type_id`),
-  KEY `idx_documents_uploaded` (`uploaded_at`),
-  CONSTRAINT `documents_case_fk` FOREIGN KEY (`case_id`) REFERENCES `case_applications` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `documents_client_fk` FOREIGN KEY (`client_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `documents_document_type_fk` FOREIGN KEY (`document_type_id`) REFERENCES `document_types` (`id`),
-  CONSTRAINT `documents_professional_fk` FOREIGN KEY (`professional_id`) REFERENCES `professionals` (`user_id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-PARTITION BY RANGE (YEAR(uploaded_at)) (
-    PARTITION p2023 VALUES LESS THAN (2024),
-    PARTITION p2024 VALUES LESS THAN (2025),
-    PARTITION p2025 VALUES LESS THAN (2026),
-    PARTITION p2026 VALUES LESS THAN (2027),
-    PARTITION p2027 VALUES LESS THAN (2028),
-    PARTITION p2028 VALUES LESS THAN (2029),
-    PARTITION pmax VALUES LESS THAN MAXVALUE
-);
+  KEY `idx_documents_uploaded` (`uploaded_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Add the foreign key constraints separately
+ALTER TABLE `documents` 
+  ADD CONSTRAINT `documents_case_fk` FOREIGN KEY (`case_id`) REFERENCES `case_applications` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `documents_client_fk` FOREIGN KEY (`client_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `documents_document_type_fk` FOREIGN KEY (`document_type_id`) REFERENCES `document_types` (`id`),
+  ADD CONSTRAINT `documents_professional_fk` FOREIGN KEY (`professional_id`) REFERENCES `professionals` (`user_id`) ON DELETE SET NULL;
 
 -- Consultant availability table - Updated
 CREATE TABLE `consultant_availability` (
@@ -297,7 +291,10 @@ CREATE TABLE `consultant_availability` (
   CONSTRAINT `consultant_availability_professional_fk` FOREIGN KEY (`professional_id`) REFERENCES `professionals` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Time slots table - Updated with relationship to consultant_availability
+-- First, drop the existing time_slots table 
+DROP TABLE IF EXISTS `time_slots`;
+
+-- Recreate the time_slots table with correct syntax
 CREATE TABLE `time_slots` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `professional_id` int(11) NOT NULL,
@@ -306,7 +303,7 @@ CREATE TABLE `time_slots` (
   `start_time` time NOT NULL,
   `end_time` time NOT NULL,
   `is_booked` tinyint(1) NOT NULL DEFAULT 0,
-  `service_mode_id` int(11) NOT NULL AFTER `end_time`,
+  `service_mode_id` int(11) NOT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -398,6 +395,7 @@ CREATE TABLE `reviews` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Notifications table
+-- Notifications table without partitioning
 CREATE TABLE `notifications` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL,
@@ -410,13 +408,7 @@ CREATE TABLE `notifications` (
   KEY `user_id` (`user_id`),
   KEY `idx_notifications_read_created` (`user_id`, `is_read`, `created_at`),
   CONSTRAINT `notifications_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-PARTITION BY RANGE (MONTH(created_at)) (
-    PARTITION p1 VALUES LESS THAN (4),
-    PARTITION p2 VALUES LESS THAN (7),
-    PARTITION p3 VALUES LESS THAN (10),
-    PARTITION p4 VALUES LESS THAN MAXVALUE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 
 -- System settings table
@@ -449,15 +441,102 @@ CREATE TABLE `activity_logs` (
   KEY `idx_activity_entity` (`entity_type`, `entity_id`),
   KEY `idx_activity_created` (`created_at`),
   CONSTRAINT `activity_logs_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-PARTITION BY RANGE (MONTH(created_at)) (
-    PARTITION p1 VALUES LESS THAN (4),
-    PARTITION p2 VALUES LESS THAN (7),
-    PARTITION p3 VALUES LESS THAN (10),
-    PARTITION p4 VALUES LESS THAN MAXVALUE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 
 -- Add triggers for booking consistency
+
+-- Chat conversations table
+CREATE TABLE `conversations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `client_id` int(11) NOT NULL,
+  `professional_id` int(11) NOT NULL,
+  `case_id` int(11) DEFAULT NULL,
+  `service_type_id` int(11) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `client_professional_case` (`client_id`,`professional_id`,`case_id`),
+  KEY `case_id` (`case_id`),
+  KEY `service_type_id` (`service_type_id`),
+  CONSTRAINT `conversations_client_fk` FOREIGN KEY (`client_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `conversations_professional_fk` FOREIGN KEY (`professional_id`) REFERENCES `professionals` (`user_id`) ON DELETE CASCADE,
+  CONSTRAINT `conversations_case_fk` FOREIGN KEY (`case_id`) REFERENCES `case_applications` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `conversations_service_type_fk` FOREIGN KEY (`service_type_id`) REFERENCES `service_types` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Chat messages table
+CREATE TABLE `chat_messages` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `conversation_id` int(11) NOT NULL,
+  `sender_id` int(11) NOT NULL,
+  `content` text NOT NULL,
+  `service_mode_id` int(11) DEFAULT NULL,
+  `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  `read_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `conversation_id` (`conversation_id`),
+  KEY `sender_id` (`sender_id`),
+  KEY `service_mode_id` (`service_mode_id`),
+  KEY `idx_messages_created` (`created_at`),
+  KEY `idx_messages_read` (`is_read`),
+  CONSTRAINT `chat_messages_conversation_fk` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `chat_messages_sender_fk` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `chat_messages_service_mode_fk` FOREIGN KEY (`service_mode_id`) REFERENCES `service_modes` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+-- For message attachments (optional)
+CREATE TABLE `chat_attachments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `message_id` int(11) NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `file_name` varchar(100) NOT NULL,
+  `file_size` int(11) DEFAULT NULL,
+  `mime_type` varchar(50) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `message_id` (`message_id`),
+  CONSTRAINT `chat_attachments_message_fk` FOREIGN KEY (`message_id`) REFERENCES `chat_messages` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+
+-- Professional service offerings table with pricing control
+CREATE TABLE `professional_services` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `professional_id` int(11) NOT NULL,
+  `service_type_id` int(11) NOT NULL,
+  `is_offered` tinyint(1) NOT NULL DEFAULT 1,
+  `custom_price` decimal(10,2) NOT NULL COMMENT 'Price set by the professional for this service',
+  `service_description` text DEFAULT NULL COMMENT 'Professional custom description of their service',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `professional_service` (`professional_id`,`service_type_id`),
+  KEY `service_type_id` (`service_type_id`),
+  CONSTRAINT `professional_services_professional_fk` FOREIGN KEY (`professional_id`) REFERENCES `professionals` (`user_id`) ON DELETE CASCADE,
+  CONSTRAINT `professional_services_service_type_fk` FOREIGN KEY (`service_type_id`) REFERENCES `service_types` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Professional service mode pricing (optional - for different pricing per mode)
+CREATE TABLE `professional_service_mode_pricing` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `professional_service_id` int(11) NOT NULL,
+  `service_mode_id` int(11) NOT NULL,
+  `is_offered` tinyint(1) NOT NULL DEFAULT 1,
+  `additional_fee` decimal(10,2) DEFAULT 0.00 COMMENT 'Additional fee for this specific mode',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `prof_service_mode` (`professional_service_id`,`service_mode_id`),
+  KEY `service_mode_id` (`service_mode_id`),
+  CONSTRAINT `prof_service_mode_pricing_prof_service_fk` FOREIGN KEY (`professional_service_id`) REFERENCES `professional_services` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `prof_service_mode_pricing_service_mode_fk` FOREIGN KEY (`service_mode_id`) REFERENCES `service_modes` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- Create view for recent conversations
 DELIMITER //
 
 -- Trigger to mark time slot as booked when a booking is created
@@ -547,6 +626,7 @@ END;
 DELIMITER ;
 
 -- Create stored procedure to generate time slots when a consultant marks a day as available
+DROP PROCEDURE IF EXISTS generate_time_slots;
 DELIMITER //
 
 CREATE PROCEDURE generate_time_slots(
@@ -605,6 +685,38 @@ BEGIN
 END;
 //
 
+
+DELIMITER ;
+
+-- Replace the view with a stored procedure
+DROP VIEW IF EXISTS recent_conversations;
+
+DELIMITER //
+
+CREATE PROCEDURE get_recent_conversations(IN p_current_user_id INT)
+BEGIN
+    SELECT 
+      c.id AS conversation_id,
+      c.client_id,
+      c.professional_id,
+      u1.name AS client_name,
+      u2.name AS professional_name,
+      (SELECT COUNT(*) FROM chat_messages 
+       WHERE conversation_id = c.id AND is_read = 0 AND sender_id != p_current_user_id) AS unread_count,
+      (SELECT created_at FROM chat_messages 
+       WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message_time,
+      (SELECT content FROM chat_messages 
+       WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message
+    FROM conversations c
+    JOIN users u1 ON c.client_id = u1.id
+    JOIN professionals p ON c.professional_id = p.user_id
+    JOIN users u2 ON p.user_id = u2.id
+    WHERE c.client_id = p_current_user_id OR c.professional_id = p_current_user_id
+    ORDER BY last_message_time DESC;
+END//
+
+DELIMITER ;
+
 -- Create a view to show available time slots for booking
 CREATE VIEW available_time_slots AS
 SELECT 
@@ -641,125 +753,6 @@ WHERE
   AND u.deleted_at IS NULL
   AND ps.is_offered = 1
   AND COALESCE(psmp.is_offered, 1) = 1;
-//
-
-DELIMITER ;
-
--- Chat conversations table
-CREATE TABLE `conversations` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `client_id` int(11) NOT NULL,
-  `professional_id` int(11) NOT NULL,
-  `case_id` int(11) DEFAULT NULL,
-  `service_type_id` int(11) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `client_professional_case` (`client_id`,`professional_id`,`case_id`),
-  KEY `case_id` (`case_id`),
-  KEY `service_type_id` (`service_type_id`),
-  CONSTRAINT `conversations_client_fk` FOREIGN KEY (`client_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `conversations_professional_fk` FOREIGN KEY (`professional_id`) REFERENCES `professionals` (`user_id`) ON DELETE CASCADE,
-  CONSTRAINT `conversations_case_fk` FOREIGN KEY (`case_id`) REFERENCES `case_applications` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `conversations_service_type_fk` FOREIGN KEY (`service_type_id`) REFERENCES `service_types` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Chat messages table
-CREATE TABLE `chat_messages` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `conversation_id` int(11) NOT NULL,
-  `sender_id` int(11) NOT NULL,
-  `content` text NOT NULL,
-  `service_mode_id` int(11) DEFAULT NULL,
-  `is_read` tinyint(1) NOT NULL DEFAULT 0,
-  `read_at` datetime DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `deleted_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `conversation_id` (`conversation_id`),
-  KEY `sender_id` (`sender_id`),
-  KEY `service_mode_id` (`service_mode_id`),
-  KEY `idx_messages_created` (`created_at`),
-  KEY `idx_messages_read` (`is_read`),
-  CONSTRAINT `chat_messages_conversation_fk` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `chat_messages_sender_fk` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `chat_messages_service_mode_fk` FOREIGN KEY (`service_mode_id`) REFERENCES `service_modes` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-PARTITION BY RANGE (MONTH(created_at)) (
-    PARTITION p1 VALUES LESS THAN (4),
-    PARTITION p2 VALUES LESS THAN (7),
-    PARTITION p3 VALUES LESS THAN (10),
-    PARTITION p4 VALUES LESS THAN MAXVALUE
-);
-
--- For message attachments (optional)
-CREATE TABLE `chat_attachments` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `message_id` int(11) NOT NULL,
-  `file_path` varchar(255) NOT NULL,
-  `file_name` varchar(100) NOT NULL,
-  `file_size` int(11) DEFAULT NULL,
-  `mime_type` varchar(50) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `message_id` (`message_id`),
-  CONSTRAINT `chat_attachments_message_fk` FOREIGN KEY (`message_id`) REFERENCES `chat_messages` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Create view for recent conversations
-CREATE VIEW recent_conversations AS
-SELECT 
-  c.id AS conversation_id,
-  c.client_id,
-  c.professional_id,
-  u1.name AS client_name,
-  u2.name AS professional_name,
-  (SELECT COUNT(*) FROM chat_messages 
-   WHERE conversation_id = c.id AND is_read = 0 AND sender_id != :current_user_id) AS unread_count,
-  (SELECT created_at FROM chat_messages 
-   WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message_time,
-  (SELECT content FROM chat_messages 
-   WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message
-FROM conversations c
-JOIN users u1 ON c.client_id = u1.id
-JOIN professionals p ON c.professional_id = p.user_id
-JOIN users u2 ON p.user_id = u2.id
-WHERE c.client_id = :current_user_id OR c.professional_id = :current_user_id
-ORDER BY last_message_time DESC;
-
-
--- Professional service offerings table with pricing control
-CREATE TABLE `professional_services` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `professional_id` int(11) NOT NULL,
-  `service_type_id` int(11) NOT NULL,
-  `is_offered` tinyint(1) NOT NULL DEFAULT 1,
-  `custom_price` decimal(10,2) NOT NULL COMMENT 'Price set by the professional for this service',
-  `service_description` text DEFAULT NULL COMMENT 'Professional custom description of their service',
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `professional_service` (`professional_id`,`service_type_id`),
-  KEY `service_type_id` (`service_type_id`),
-  CONSTRAINT `professional_services_professional_fk` FOREIGN KEY (`professional_id`) REFERENCES `professionals` (`user_id`) ON DELETE CASCADE,
-  CONSTRAINT `professional_services_service_type_fk` FOREIGN KEY (`service_type_id`) REFERENCES `service_types` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Professional service mode pricing (optional - for different pricing per mode)
-CREATE TABLE `professional_service_mode_pricing` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `professional_service_id` int(11) NOT NULL,
-  `service_mode_id` int(11) NOT NULL,
-  `is_offered` tinyint(1) NOT NULL DEFAULT 1,
-  `additional_fee` decimal(10,2) DEFAULT 0.00 COMMENT 'Additional fee for this specific mode',
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `prof_service_mode` (`professional_service_id`,`service_mode_id`),
-  KEY `service_mode_id` (`service_mode_id`),
-  CONSTRAINT `prof_service_mode_pricing_prof_service_fk` FOREIGN KEY (`professional_service_id`) REFERENCES `professional_services` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `prof_service_mode_pricing_service_mode_fk` FOREIGN KEY (`service_mode_id`) REFERENCES `service_modes` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Create view for professional available services with pricing
 CREATE VIEW professional_available_services AS
@@ -790,31 +783,39 @@ WHERE
   AND p.verification_status = 'verified'
   AND u.status = 'active';
 
--- Create view for recent conversations with unread messages count
-CREATE VIEW recent_conversations AS
-SELECT 
-  c.id AS conversation_id,
-  c.client_id,
-  c.professional_id,
-  c.case_id,
-  c.service_type_id,
-  st.name AS service_type_name,
-  u1.name AS client_name,
-  u2.name AS professional_name,
-  ca.reference_number AS case_reference,
-  (SELECT COUNT(*) FROM chat_messages 
-   WHERE conversation_id = c.id AND is_read = 0 AND sender_id != :current_user_id) AS unread_count,
-  (SELECT created_at FROM chat_messages 
-   WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message_time,
-  (SELECT content FROM chat_messages 
-   WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message
-FROM conversations c
-JOIN users u1 ON c.client_id = u1.id
-JOIN professionals p ON c.professional_id = p.user_id
-JOIN users u2 ON p.user_id = u2.id
-LEFT JOIN case_applications ca ON c.case_id = ca.id
-LEFT JOIN service_types st ON c.service_type_id = st.id
-WHERE c.client_id = :current_user_id OR c.professional_id = :current_user_id
-ORDER BY last_message_time DESC;
+-- Replace the second view with a stored procedure
+DROP PROCEDURE IF EXISTS get_recent_conversations_with_case;
+
+DELIMITER //
+
+CREATE PROCEDURE get_recent_conversations_with_case(IN p_current_user_id INT)
+BEGIN
+    SELECT 
+      c.id AS conversation_id,
+      c.client_id,
+      c.professional_id,
+      c.case_id,
+      c.service_type_id,
+      st.name AS service_type_name,
+      u1.name AS client_name,
+      u2.name AS professional_name,
+      ca.reference_number AS case_reference,
+      (SELECT COUNT(*) FROM chat_messages 
+       WHERE conversation_id = c.id AND is_read = 0 AND sender_id != p_current_user_id) AS unread_count,
+      (SELECT created_at FROM chat_messages 
+       WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message_time,
+      (SELECT content FROM chat_messages 
+       WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message
+    FROM conversations c
+    JOIN users u1 ON c.client_id = u1.id
+    JOIN professionals p ON c.professional_id = p.user_id
+    JOIN users u2 ON p.user_id = u2.id
+    LEFT JOIN case_applications ca ON c.case_id = ca.id
+    LEFT JOIN service_types st ON c.service_type_id = st.id
+    WHERE c.client_id = p_current_user_id OR c.professional_id = p_current_user_id
+    ORDER BY last_message_time DESC;
+END//
+
+DELIMITER ;
 
 COMMIT;
